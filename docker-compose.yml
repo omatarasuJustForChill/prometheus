@@ -1,0 +1,48 @@
+networks:
+  monitoring:
+    driver: bridge
+volumes:
+  prometheus_date: {}
+  grafana_date: {}
+
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    ports:
+      - 9091:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_date:/prometheus
+    networks:
+      - monitoring
+
+  node_exporter:
+    image: prom/node-exporter:v1.6.1
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
+    command:
+      - '--collector.systemd'
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    restart: always
+    volumes:
+      - grafana_date:/var/lib/grafana
+    ports:
+      - 3000:3000
+    networks:
+      - monitoring
